@@ -9,9 +9,10 @@
 --module Cardguess (initialGuess, nextGuess, GameState(..)) where
 module Cardguess (initialGuess, GameState(..)) where
 
+import Data.List
 import Card
 
-data GameState = GameState [Card] (Int, Int, Int, Int, Int)
+data GameState = GameState [[Card]] (Int, Int, Int, Int, Int)
     deriving (Show)
 
 stateCorrect :: (Int, Int, Int, Int, Int) -> Int
@@ -29,30 +30,48 @@ stateHigher (_, _, _, a, _) = a
 stateSameSuit :: (Int, Int, Int, Int, Int) -> Int
 stateSameSuit (_, _, _, _, a) = a
 
+sMakeCombination :: Int -> [Card] -> [[Card]]
+sMakeCombination numCards c = map sort (makeCombination numCards c)
+
+--Credit: http://www.haskell.org/haskellwiki/99_questions/Solutions/26
+makeCombination :: Int -> [a] -> [[a]]
+makeCombination 0 _  = [ [] ]
+makeCombination n xs = [ y:ys | y:xs' <- tails xs
+                           , ys <- makeCombination (n-1) xs']
 
 initialGuess :: Int -> ([Card], GameState)
-initialGuess numCards = ((genInitCards firstSplit firstSplit), gameState)
+initialGuess numCards = (guessedCards, gameState)
     where
-    firstSplit = ceiling (52 / fromIntegral (numCards + 1))
-    gameState = GameState [(Card Club R2)..(Card Spade Ace)] (0, 0, 0, 0, 0)
-    genInitCards a increment
-        | a > 51 = []
-        | otherwise = (Card s r) : (genInitCards nextSplit increment)
-            where
-            s = toEnum (a `div` 13)
-            r = toEnum (a `mod` 13)
-            nextSplit = a + increment
+    guessedCards = sGenInitCards firstSplit firstSplit
+        where firstSplit = ceiling (52 / fromIntegral (numCards + 1))
+    gameState = GameState updatedCombo (0, 0, 0, 0, 0)
+        where
+        allCombo = sMakeCombination
+            numCards [(Card Club R2)..(Card Spade Ace)]
+        updatedCombo = delete guessedCards allCombo
 
+sGenInitCards :: Int -> Int -> [Card]
+sGenInitCards newCard increment = sort (genInitCards newCard increment)
+
+genInitCards :: Int -> Int -> [Card]
+genInitCards newCard increment
+    | newCard > 51 = []
+    | otherwise = (Card s r) : (genInitCards nextCard increment)
+        where
+        s = toEnum (newCard `mod` 4)
+        r = toEnum (newCard `div` 4)
+        nextCard = newCard + increment
 
 --nextGuess :: ([Card],GameState) -> (Int,Int,Int,Int,Int) -> ([Card],GameState)
 --nextGuess reply = guessNewCards
 
+--old functions
 searchBound :: Int -> Int -> Int -> Int
 searchBound guess answer step
     | newGuess < answer = searchBound guess answer (2 * step)
     | otherwise = newGuess
     where
-    newGuess = boundCard (guess + step)
+        newGuess = boundCard (guess + step)
 
 -- |This function bounds an overflow card rather than wrapping around
 boundCard :: Int -> Int
