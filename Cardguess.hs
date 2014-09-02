@@ -98,38 +98,37 @@ nextGuess :: GameStateBundle -> Hint -> GameStateBundle
 nextGuess (prevGuess, gameState) hint =
     (prevGuess, gameState)
 
-{- Checking ranks -}
 
---checkCorrect :: GameStateBundle -> Hint -> GameStateBundle
---checkCorrect bundle@(prevGuess, gameState) hint
---    | stateCorrect gameState >= length prevGuess = error "Error at check rank"
---    | otherwise = filterCorrect bundle diff
---    where
---    diff = stateCorrect gameState - correct hint
 
---filterCorrect :: GameStateBundle -> Int -> GameStateBundle
---filterCorrect bundle@(prevGuess, GameState believe guessed hint) diff
---    | diff > 0 = (prevGuess, GameState filteredBelieve guessed hint)
---    | diff == 0 = bundle
---    | otherwise = bundle
---    where
---    filteredBelieve = reduceBelieve filterCard prevGuess believe
+checkCorrect :: GameStateBundle -> Hint -> GameStateBundle
+checkCorrect bundle@(prevGuess, gameState) hint
+    | stateCorrect gameState >= length prevGuess = error "Error at check rank"
+    | otherwise = filterCorrect bundle hint
 
-filterCard :: [Card] -> BelieveSpace -> BelieveSpace
-filterCard guess believe = filter (elems guess) believe
+filterCorrect :: GameStateBundle -> Hint -> GameStateBundle
+filterCorrect bundle@(prevGuess, GameState believe guessed hint) newHint
+    = (prevGuess, GameState filteredBelieve guessed hint)
+    where
+    filteredBelieve = filterExact (correct newHint) prevGuess believe
 
---{- reduce function -}
---reduceBelieve :: (Card -> BelieveSpace -> BelieveSpace) -> [Card]
---    -> BelieveSpace -> BelieveSpace
---reduceBelieve filterFunc (c:cs) believe =
---    reduceBelieve filterFunc cs updatedBelieve
---    where
---    updatedBelieve = filterFunc c believe
---reduceBelieve _ [] believe = believe
-
+{- reduce function -}
 elems :: [Card] -> [Card] -> Bool
 elems (x:xs) cards = elem x cards || elems xs cards
 elems [] cards = False
+
+filterExact :: Int -> [Card] -> BelieveSpace -> BelieveSpace
+filterExact num guess believe = filter (containExact num guess) believe
+
+containExact :: Eq a => Int -> [a] -> [a] -> Bool
+containExact num xs cards
+    | num == getOccurances xs cards = True
+    | otherwise = False
+
+getOccurances :: Eq a => [a] -> [a] -> Int
+getOccurances (x:xs) cards
+    | elem x cards = 1 + getOccurances xs cards
+    | otherwise = getOccurances xs cards
+getOccurances [] _ = 0
 
 --old functions
 searchBound :: Int -> Int -> Int -> Int
@@ -152,3 +151,21 @@ compRank :: Card -> Card -> Ordering
 compRank (Card s1 r1) (Card s2 r2) =
     let rankOrder = compare r1 r2 in
     if rankOrder == EQ then compare s1 s2 else rankOrder
+
+extractGuess :: GameStateBundle -> [Card]
+extractGuess (_, GameState (b:believe) _ _)
+    = b
+
+finalizeGameState :: [Card] -> Hint -> GameStateBundle -> GameStateBundle
+finalizeGameState newGuess newHint (prev, GameState believe guessed hint)
+    = (prev, GameState newBelieve (newGuess:guessed) newHint)
+    where
+    newBelieve = delete newGuess believe
+
+--reduceBelieve :: (Card -> BelieveSpace -> BelieveSpace) -> [Card]
+--    -> BelieveSpace -> BelieveSpace
+--reduceBelieve filterFunc (c:cs) believe =
+--    reduceBelieve filterFunc cs updatedBelieve
+--    where
+--    updatedBelieve = filterFunc c believe
+--reduceBelieve _ [] believe = believe
