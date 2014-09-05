@@ -82,8 +82,10 @@ response guess answer = (c, l, r, u, s)
     c = getOccurances guess answer
     r = getOccurancesR guess answer
     s = getOccurancesS guess answer
-    l = length $ filter (\x -> x < rank (minimum guess)) (card2Rank answer)
-    u = length $ filter (\x -> x > rank (maximum guess)) (card2Rank answer)
+    l = length $ filter
+        (\x -> x < minimum (card2Rank guess)) (card2Rank answer)
+    u = length $ filter
+        (\x -> x > maximum (card2Rank guess)) (card2Rank answer)
 
 getOccurances :: Eq a => [a] -> [a] -> Int
 getOccurances guess answer

@@ -3,3 +3,5 @@
 *.hi
 *.chi
 *.chs.h
+sftp-config.json
+*.exe
