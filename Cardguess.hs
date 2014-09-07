@@ -33,8 +33,8 @@ sameSuit :: Hint -> Int
 sameSuit (_, _, _, _, a) = a
 
 sMakeCombination :: Int -> [Card] -> [[Card]]
-sMakeCombination numCards c = map (sortBy
-    compRank) (makeCombination numCards c)
+sMakeCombination numCards c = sort $
+    map (sortBy compRank) (makeCombination numCards c)
 
 --Credit: http://www.haskell.org/haskellwiki/99_questions/Solutions/26
 makeCombination :: Int -> [a] -> [[a]]
@@ -75,7 +75,9 @@ nextGuess (prevGuess, GameState believeSpace) hint =
         where
         nBelieveSpace =
             if length newBelieve > 1000 then
-                take 1000 newBelieve
+                --takeEvery 0 (length newBelieve `div` 500) newBelieve
+                --take 1000 newBelieve
+                (take 500 newBelieve) ++ (take 500 $ reverse believeSpace)
                 else
                     newBelieve
 
@@ -134,3 +136,10 @@ compRank :: Card -> Card -> Ordering
 compRank (Card s1 r1) (Card s2 r2) =
     let rankOrder = compare r1 r2 in
     if rankOrder == EQ then compare s1 s2 else rankOrder
+
+takeEvery :: Int -> Int -> [a] -> [a]
+takeEvery current increment (x:xs)
+    | current `mod` increment == 0
+        = x : takeEvery (current + 1) increment xs
+    | otherwise = takeEvery (current + 1) increment xs
+takeEvery _ _ [] = []
