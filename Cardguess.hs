@@ -13,8 +13,7 @@ type Hint = (Int, Int, Int, Int, Int)
 type GameStateBundle = ([Card], GameState)
 type ResponseBundle = (GameStateBundle, Hint)
 
---GameState BelieveSpace GuessedCards
-data GameState = GameState {getBelieve::BelieveSpace}
+data GameState = GameState {getBelieve :: BelieveSpace}
     deriving (Show)
 
 correct :: Hint -> Int
@@ -75,8 +74,6 @@ nextGuess (prevGuess, GameState believeSpace) hint =
         where
         nBelieveSpace =
             if length newBelieve > 1000 then
-                --takeEvery 0 (length newBelieve `div` 500) newBelieve
-                --take 1000 newBelieve
                 (take 500 newBelieve) ++ (take 500 $ reverse believeSpace)
                 else
                     newBelieve
@@ -136,10 +133,3 @@ compRank :: Card -> Card -> Ordering
 compRank (Card s1 r1) (Card s2 r2) =
     let rankOrder = compare r1 r2 in
     if rankOrder == EQ then compare s1 s2 else rankOrder
-
-takeEvery :: Int -> Int -> [a] -> [a]
-takeEvery current increment (x:xs)
-    | current `mod` increment == 0
-        = x : takeEvery (current + 1) increment xs
-    | otherwise = takeEvery (current + 1) increment xs
-takeEvery _ _ [] = []
