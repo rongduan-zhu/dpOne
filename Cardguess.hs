@@ -5,8 +5,8 @@
 module Cardguess (initialGuess, nextGuess, GameState(..)) where
 
 import Data.List
-import GHC.Float
 import Card
+import Data.Ord(comparing)
 
 type BelieveSpace = [[Card]]
 type Hint = (Int, Int, Int, Int, Int)
@@ -71,42 +71,31 @@ nextGuess (prevGuess, GameState believeSpace) hint =
     (bestGuess, GameState (delete bestGuess newBelieve))
     where
     newBelieve = filter (\x -> response prevGuess x == hint) believeSpace
-    (bestGuess, _) =
-        calcBestG nBelieveSpace nBelieveSpace
-            (head nBelieveSpace, fromIntegral (maxBound :: Int))
+    bestGuess = calcBestG nBelieveSpace nBelieveSpace
         where
-        nBelieveSpace = if length newBelieve > 10000 then
-                            drop (15 * length newBelieve `div` 16) newBelieve
-                            else
-                                newBelieve
+        nBelieveSpace =
+            if length newBelieve > 1000 then
+                take 1000 newBelieve
+                else
+                    newBelieve
 
-calcBestG :: BelieveSpace -> [[Card]] -> ([Card], Double) -> ([Card], Double)
-calcBestG believeSpace (g:gs) (bestG, minScore)
-    = calcBestG believeSpace gs (nBestG, nMinScore)
+calcBestG :: BelieveSpace -> [[Card]] -> [Card]
+calcBestG believeSpace guesses = bestG
     where
-    hints = map (response g) believeSpace
-    weightedSum = calcWS hints
-    nBestG = if weightedSum < minScore then g else bestG
-    nMinScore = if weightedSum < minScore then weightedSum else minScore
-calcBestG believeSpace [] (bestG, minScore) = (bestG, minScore)
+    weightedSums =
+        zip guesses (map calcWS (map (groupResponses believeSpace) guesses))
+    bestG = fst $ minimumBy (comparing snd) weightedSums
 
 calcWS :: [Hint] -> Double
 calcWS hints = weightedSum
     where
-    groupCount = hintsReduce hints []
+    groupCount = map length . group . sort $ hints
     top = foldr (+) 0 (map (\x -> x ^ 2) groupCount)
     bottom = foldr (+) 0 groupCount
     weightedSum = fromIntegral top / fromIntegral bottom
 
-hintsReduce :: Eq a => [a] -> [Int] -> [Int]
-hintsReduce (h1:h2:hs) []
-    | h2 == h1 = hintsReduce (h2:hs) [1]
-    | otherwise = hintsReduce (h2:hs) [0, 1]
-hintsReduce (h1:h2:hs) (c:cs)
-    | h2 == h1 = hintsReduce (h2:hs) ((c + 1):cs)
-    | otherwise = hintsReduce (h2:hs) (0:(c + 1):cs)
-hintsReduce (h:[]) (c:cs) = ((c + 1):cs)
-hintsReduce (h:[]) [] = [1]
+groupResponses :: BelieveSpace -> [Card] -> [Hint]
+groupResponses believeSpace guess = map (response guess) believeSpace
 
 response :: [Card] -> [Card] -> Hint
 response guess answer = (c, l, r, u, s)
