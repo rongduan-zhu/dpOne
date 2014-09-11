@@ -2,16 +2,48 @@
 --  Author   : Rongduan Zhu
 --  Purpose  : A guesser program used for guessing card
 
+--  Strategy
+-- | Initial Guess: For initial guess, my strategy is quite simple, assuming
+-- the cards are labeled from 0 to 51, ordered by rank first then suit. When
+-- guessing the initial n cards, I break the cards up into (n + 1) equal
+-- length partitions. And picking the boundary number then converting it to
+-- the corresponding card. For example, for two cards, the position picked
+-- are 18 (6H) and 36 (JC). This is using Hint 4.
+-- | Subsequent Guess: For subsequent guesses, I first eliminate all
+-- impossible possible answers from the believe space, I do so working out
+-- the response for all items in the believe space with my guess, and if
+-- the response is not the same as the one returned, I delete them as they
+-- cannot be correct (Hint 2). Then for the remaining possible answers, for
+-- each possible answer, I calculate the expected number of remaining
+-- possible answers, and pick the one with the smallest value.
+-- In order to satisfy the 10 seconds time constraint, if the believe
+-- space is greater than 1000, then I only do the calculation to a combined
+-- list with the first 500 elements of the believe space and the last 500
+-- elements of the believe space. The reason I did this is because when I
+-- generated my believe space, they are sorted based on suit then rank. This
+-- means that the first 500 elements are most likely to be cards with a rank 2
+-- in it, the the last 500 elements are most likely to be cards with Ace in
+-- it. Reason for this is because my initial guess don't have any cards in
+-- the far ends of the rank. They are all in the middle, so if after applying
+-- hint 2, the believe space is still big, it is most likely to be in the
+-- extreme ends or in the middle. And from testing, it seemed that taking
+-- first 500 cards and last 500 cards seems to provide the best result, that
+-- is the minimum average number of guesses. I chose the magic number 1000
+-- because it just meets the time constraint, with hard cases for 4 cards
+-- taking about 9.6 seconds.
+
+
 module Cardguess (initialGuess, nextGuess, GameState(..)) where
+
 
 import Data.List
 import Card
 import Data.Ord(comparing)
 
+
 type BelieveSpace = [[Card]]
 type Hint = (Int, Int, Int, Int, Int)
 type GameStateBundle = ([Card], GameState)
-type ResponseBundle = (GameStateBundle, Hint)
 
 
 -- | Data structure representing the state of the game
@@ -109,14 +141,14 @@ sGenInitCards newCard increment = sortBy
 genInitCards :: Int -> Int -> [Card]
 genInitCards newCard increment
     | newCard > 51 = []
-    | otherwise = (Card s r) : (genInitCards nextCard increment)
+    | otherwise    = (Card s r) : (genInitCards nextCard increment)
         where
-        s = toEnum (newCard `mod` 4)
-        r = toEnum (newCard `div` 4)
+        s        = toEnum (newCard `mod` 4)
+        r        = toEnum (newCard `div` 4)
         nextCard = newCard + increment
 
 
--- | Generates the next possible guess. It first eleminates all combinations
+-- | Generates the next possible guess. It first eliminates all combinations
 -- in believe space that does not satisfy the feedback, it then use the
 -- remaining elements in the believe space to figure out which combination
 -- will give the lowest expected number of remaining possible answers.
@@ -128,7 +160,7 @@ nextGuess (prevGuess, GameState believeSpace) hint =
     (bestGuess, GameState (delete bestGuess newBelieve))
     where
     newBelieve = filter (\x -> response prevGuess x == hint) believeSpace
-    bestGuess = calcBestG nBelieveSpace nBelieveSpace
+    bestGuess  = calcBestG nBelieveSpace nBelieveSpace
         where
         nBelieveSpace =
             if length newBelieve > 1000 then
@@ -161,9 +193,9 @@ calcBestG believeSpace guesses = bestG
 calcWS :: [Hint] -> Double
 calcWS hints = weightedSum
     where
-    groupCount = map length . group . sort $ hints
-    top = foldr (+) 0 (map (\x -> x ^ 2) groupCount)
-    bottom = foldr (+) 0 groupCount
+    groupCount  = map length . group . sort $ hints
+    top         = foldr (+) 0 (map (\x -> x ^ 2) groupCount)
+    bottom      = foldr (+) 0 groupCount
     weightedSum = fromIntegral top / fromIntegral bottom
 
 
@@ -204,7 +236,7 @@ getOccurancesR guess answer =
     getOccurances (card2Rank guess) (card2Rank answer)
 
 
--- | calculates the number of common suit in two lists of cards by mappying
+-- | calculates the number of common suit in two lists of cards by mapping
 -- them to suit
 
 getOccurancesS :: [Card] -> [Card] -> Int
@@ -216,7 +248,7 @@ getOccurancesS guess answer =
 
 removeOccurances :: Eq a => [a] -> [a] -> [a]
 removeOccurances (x:xs) cards = removeOccurances xs (delete x cards)
-removeOccurances [] cards = cards
+removeOccurances [] cards     = cards
 
 
 -- | maps a list of card to list of ranks
