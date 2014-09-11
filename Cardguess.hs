@@ -2,6 +2,12 @@
 --  Author   : Rongduan Zhu
 --  Purpose  : A guesser program used for guessing card
 
+-- | Game Description
+-- | This program implements the card guesser. The game is a card guessing
+-- game, where a person picks a combination of n cards and another person
+-- has to try to guess the cards picked by using the hints provided
+-- back by the person who picked the cards.
+
 --  Strategy
 -- | Initial Guess: For initial guess, my strategy is quite simple, assuming
 -- the cards are labeled from 0 to 51, ordered by rank first then suit. When
@@ -163,10 +169,14 @@ nextGuess (prevGuess, GameState believeSpace) hint =
     bestGuess  = calcBestG nBelieveSpace nBelieveSpace
         where
         nBelieveSpace =
-            if length newBelieve > 1000 then
-                (take 500 newBelieve) ++ (take 500 $ reverse believeSpace)
+            if length newBelieve > threshHold then
+                (take threshHoldPart newBelieve)
+                    ++ (take threshHoldPart $ reverse believeSpace)
                 else
                     newBelieve
+            where
+            threshHold = 1000
+            threshHoldPart = threshHold `div` 2
 
 
 -- | This calculates for all possible answers in believe space, the answer
