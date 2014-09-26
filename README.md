@@ -1,2 +1,2 @@
-dpOne
+Declarative Programming Project 1
 =====
